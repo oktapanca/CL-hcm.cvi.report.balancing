@@ -1,0 +1,63 @@
+<mvc:View
+    controllerName="hcm.cvi.report.balancing.controller.Main"
+    xmlns:mvc="sap.ui.core.mvc"
+    displayBlock="true"
+    xmlns:core="sap.ui.core"
+    xmlns="sap.m"
+    xmlns:t="sap.ui.table"
+    xmlns:f="sap.f"
+    xmlns:smartFilterBar="sap.ui.comp.smartfilterbar"
+    xmlns:sfb="sap.ui.comp.smartfilterbar"
+    xmlns:smartTable="sap.ui.comp.smarttable"
+    xmlns:unified="sap.ui.unified"
+    xmlns:html="http://www.w3.org/1999/xhtml"
+    xmlns:app="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1"
+>
+    <Page
+        id="page"
+        title="{i18n>title}"
+        showHeader="false"
+    >
+        <content>
+            <IconTabBar
+                id="idIconTabBar"
+                select="onTabBarSelect"
+                class="sapUiResponsiveContentPadding"
+                expandable="false"
+            >
+                <items>
+                    <IconTabFilter
+                        key="01"
+                        text="Balancing"
+                    />
+                    <IconTabSeparator />
+                    <IconTabFilter
+                        key="02"
+                        text="Report Annual CVI"
+                    />
+                </items>
+                <content />
+            </IconTabBar>
+
+            <VBox
+                fitContainer="true"
+                visible="{oModel>/VisibleReportAnnual}"
+            >
+                <core:Fragment
+                    fragmentName="hcm.cvi.report.balancing.view.fragments.ReportAnnual"
+                    type="XML"
+                />
+            </VBox>
+
+            <VBox
+                fitContainer="true"
+                visible="{oModel>/visibleBalancing}"
+            >
+                <core:Fragment
+                    fragmentName="hcm.cvi.report.balancing.view.fragments.Balancing"
+                    type="XML"
+                />
+            </VBox>
+        </content>
+    </Page>
+</mvc:View>

@@ -1,0 +1,37 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <Dialog
+        id="detailDialog"
+        title="Detail Information"
+        stretchOnPhone="true"
+        contentWidth="500px"
+        contentHeight="400px"
+        class="sapUiResponsivePadding--header sapUiResponsivePadding--content sapUiResponsivePadding--footer"
+    >
+        <content>
+            <VBox>
+                <form:SimpleForm
+                    id="detailForm"
+                    layout="ResponsiveGridLayout"
+                    editable="false"
+                    xmlns:form="sap.ui.layout.form"
+                >
+                    <form:content>
+                        <Label text="ID" />
+                        <Text text="{ID}" />
+                        <Label text="Name" />
+                        <Text text="{NAME}" />
+                        <Label text="Department" />
+                        <Text text="{DEPT}" />
+                        <!-- Add more fields as needed -->
+                    </form:content>
+                </form:SimpleForm>
+            </VBox>
+        </content>
+        <endButton>
+            <Button
+                text="Close"
+                press="onCloseDialog"
+            />
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>

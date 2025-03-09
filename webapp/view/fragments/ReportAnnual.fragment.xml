@@ -1,0 +1,30 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:t="sap.ui.table"
+    xmlns:f="sap.f"
+    xmlns:sfb="sap.ui.comp.smartfilterbar"
+>
+        <f:DynamicPageHeader>
+            <sfb:SmartFilterBar
+                entitySet="ZHCMCD_CVI_ANNUALREPORT"
+                search="onSearchReport"
+            />
+        </f:DynamicPageHeader>
+        <t:Table
+            id="reportTable"
+            selectionMode="None"
+            visibleRowCountMode="Auto"
+        >
+            <t:extension>
+                <OverflowToolbar style="Clear">
+                    <ToolbarSpacer />
+                    <Button
+                        icon="sap-icon://excel-attachment"
+                        pressed="false"
+                        press="onDownloadBalancing"
+                    />
+                </OverflowToolbar>
+            </t:extension>
+        </t:Table>
+</core:FragmentDefinition>
