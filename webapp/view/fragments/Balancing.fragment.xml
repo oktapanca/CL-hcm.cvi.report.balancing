@@ -7,13 +7,15 @@
 >
         <f:DynamicPageHeader>
             <sfb:SmartFilterBar
+                id = "smartFilterBalancing"
                 entitySet="ZHCMCD_CVI_BALANCING"
-                search="onSearch"
+                search="onSearchBalancing"
             />
         </f:DynamicPageHeader>
         <t:Table
             id="balancingTable"
-            selectionMode="MultiToggle"
+            selectionMode="Single"
+            rowSelectionChange="onTableBalancingSelection"
         >
             <t:extension>
                 <OverflowToolbar style="Clear">

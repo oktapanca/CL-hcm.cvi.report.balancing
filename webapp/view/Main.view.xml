@@ -41,7 +41,7 @@
 
             <VBox
                 fitContainer="true"
-                visible="{oModel>/VisibleReportAnnual}"
+                visible="{oLocalModel>/VisibleReportAnnual}"
             >
                 <core:Fragment
                     fragmentName="hcm.cvi.report.balancing.view.fragments.ReportAnnual"
@@ -51,7 +51,7 @@
 
             <VBox
                 fitContainer="true"
-                visible="{oModel>/visibleBalancing}"
+                visible="{oLocalModel>/visibleBalancing}"
             >
                 <core:Fragment
                     fragmentName="hcm.cvi.report.balancing.view.fragments.Balancing"

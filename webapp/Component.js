@@ -5,9 +5,10 @@
 sap.ui.define([
         "sap/ui/core/UIComponent",
         "sap/ui/Device",
-        "hcm/cvi/report/balancing/model/models"
+        "hcm/cvi/report/balancing/model/models",
+        "hcm/cvi/report/balancing/controller/ErrorHandler"
     ],
-    function (UIComponent, Device, models) {
+    function (UIComponent, Device, models, errorHandler) {
         "use strict";
 
         return UIComponent.extend("hcm.cvi.report.balancing.Component", {
@@ -21,6 +22,10 @@ sap.ui.define([
              * @override
              */
             init: function () {
+                this.oMessageProcessor = new sap.ui.core.message.ControlMessageProcessor;
+                this.oMessageManager = sap.ui.getCore().getMessageManager();
+                this.oMessageManager.registerMessageProcessor(this.oMessageProcessor);
+                this._oErrorHandler = new errorHandler(this, this.oMessageProcessor, this.oMessageManager);
                 // call the base component's init function
                 UIComponent.prototype.init.apply(this, arguments);
 
@@ -29,7 +34,26 @@ sap.ui.define([
 
                 // set the device model
                 this.setModel(models.createDeviceModel(), "device");
-            }
+            },
+            destroy: function() {
+                this.getErrorHandler().destroy();
+                e.prototype.destroy.apply(this, arguments)
+            },
+            getContentDensityClass: function() {
+                if (this._sContentDensityClass === undefined) {
+                    if (jQuery(document.body).hasClass("sapUiSizeCozy") || jQuery(document.body).hasClass("sapUiSizeCompact")) {
+                        this._sContentDensityClass = ""
+                    } else if (!t.support.touch) {
+                        this._sContentDensityClass = "sapUiSizeCompact"
+                    } else {
+                        this._sContentDensityClass = "sapUiSizeCozy"
+                    }
+                }
+                return this._sContentDensityClass
+            },
+            getErrorHandler: function() {
+                return this._oErrorHandler
+            },
         });
     }
 );

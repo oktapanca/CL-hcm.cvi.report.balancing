@@ -1,7 +1,10 @@
-<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+>
     <Dialog
         id="detailDialog"
-        title="Detail Information"
+        title="{i18n>detailDialogTitle}"
         stretchOnPhone="true"
         contentWidth="500px"
         contentHeight="400px"
@@ -15,22 +18,32 @@
                     editable="false"
                     xmlns:form="sap.ui.layout.form"
                 >
-                    <form:content>
-                        <Label text="ID" />
-                        <Text text="{ID}" />
-                        <Label text="Name" />
-                        <Text text="{NAME}" />
-                        <Label text="Department" />
-                        <Text text="{DEPT}" />
-                        <!-- Add more fields as needed -->
-                    </form:content>
+                    <Label text="ID" />
+                    <Text text="{oDetailModel>/ID}" />
+                    <Label text="Name" />
+                    <Text text="{oModel>/NAME}" />
+                </form:SimpleForm>
+                <form:SimpleForm
+                    layout="ResponsiveGridLayout"
+                    editable="false"
+                    xmlns:form="sap.ui.layout.form"
+                >
+                    <Label text="Comment" required="true" />
+                    <TextArea value="{oDetailModel>/COMMENT}" />
                 </form:SimpleForm>
             </VBox>
         </content>
+        <beginButton>
+            <Button
+                text="Save as Draft"
+                icon="sap-icon://save"
+                press="onSaveAsDraftButtonPress"
+            />
+        </beginButton>
         <endButton>
             <Button
-                text="Close"
-                press="onCloseDialog"
+                text="Cancel"
+                press="onCancelDialog"
             />
         </endButton>
     </Dialog>
