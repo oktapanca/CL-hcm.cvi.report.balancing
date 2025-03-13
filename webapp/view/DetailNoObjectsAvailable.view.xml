@@ -4,7 +4,6 @@
 	xmlns="sap.m">
 
 	<MessagePage
-		id="page"
 		title="{i18n>notAvailableViewTitle}"
 		text="{i18n>noObjectsAvailableText}"
 		icon="{sap-icon://product}"

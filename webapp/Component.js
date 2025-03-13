@@ -37,7 +37,7 @@ sap.ui.define([
             },
             destroy: function() {
                 this.getErrorHandler().destroy();
-                e.prototype.destroy.apply(this, arguments)
+                UIComponent.prototype.destroy.apply(this, arguments)
             },
             getContentDensityClass: function() {
                 if (this._sContentDensityClass === undefined) {

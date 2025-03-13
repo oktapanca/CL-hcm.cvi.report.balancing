@@ -5,32 +5,30 @@
     xmlns:f="sap.f"
     xmlns:sfb="sap.ui.comp.smartfilterbar"
 >
-        <f:DynamicPageHeader>
-            <sfb:SmartFilterBar
-                id = "smartFilterBalancing"
-                entitySet="ZHCMCD_CVI_BALANCING"
-                search="onSearchBalancing"
-            />
-        </f:DynamicPageHeader>
-        <t:Table
-            id="balancingTable"
-            selectionMode="Single"
-            rowSelectionChange="onTableBalancingSelection"
-        >
-            <t:extension>
-                <OverflowToolbar style="Clear">
-                    <ToolbarSpacer />
-                    <Button
+    <sfb:SmartFilterBar
+        id="smartFilterBalancing"
+        entitySet="ZHCMCD_CVI_BALANCINGPROCESS"
+        search="onSearchBalancing"
+    />
+    <t:Table
+        id="balancingTable"
+        selectionMode="Single"
+        rowSelectionChange="onTableBalancingSelection"
+    >
+        <t:extension>
+            <OverflowToolbar style="Clear">
+                <ToolbarSpacer />
+                <!-- <Button
                         id="button"
                         text="Balancing"
                         press="onBalancingPress"
-                    />
-                    <Button
-                        icon="sap-icon://excel-attachment"
-                        pressed="false"
-                        press="onDownloadBalancing"
-                    />
-                </OverflowToolbar>
-            </t:extension>
-        </t:Table>
+                    /> -->
+                <Button
+                    icon="sap-icon://excel-attachment"
+                    pressed="false"
+                    press="onDownloadBalancing"
+                />
+            </OverflowToolbar>
+        </t:extension>
+    </t:Table>
 </core:FragmentDefinition>

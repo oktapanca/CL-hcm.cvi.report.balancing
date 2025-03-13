@@ -6,14 +6,14 @@
         id="detailDialog"
         title="{i18n>detailDialogTitle}"
         stretchOnPhone="true"
-        contentWidth="500px"
-        contentHeight="400px"
+        contentWidth="80%"
+        contentHeight="80%"
         class="sapUiResponsivePadding--header sapUiResponsivePadding--content sapUiResponsivePadding--footer"
     >
         <content>
             <VBox>
                 <form:SimpleForm
-                    id="detailForm"
+                    id="detailFormID"
                     layout="ResponsiveGridLayout"
                     editable="false"
                     xmlns:form="sap.ui.layout.form"
@@ -21,23 +21,32 @@
                     <Label text="ID" />
                     <Text text="{oDetailModel>/ID}" />
                     <Label text="Name" />
-                    <Text text="{oModel>/NAME}" />
+                    <Text text="{oDetailModel>/NAME}" />
+                </form:SimpleForm>
+                <form:SimpleForm
+                    id="detailForm"
+                    layout="ResponsiveGridLayout"
+                    editable="false"
+                    xmlns:form="sap.ui.layout.form"
+                    maxContainerCols="2"
+                >
                 </form:SimpleForm>
                 <form:SimpleForm
                     layout="ResponsiveGridLayout"
                     editable="false"
                     xmlns:form="sap.ui.layout.form"
                 >
-                    <Label text="Comment" required="true" />
-                    <TextArea value="{oDetailModel>/COMMENT}" />
+                    <Label text="Note Message" required="true" />
+                    <TextArea id="commentBalancing" liveChange="onCommentTextAreaLiveChange" value="{oDetailModel>/Comment}" />
                 </form:SimpleForm>
             </VBox>
         </content>
         <beginButton>
             <Button
-                text="Save as Draft"
+                text="Save"
+                type="Default"
                 icon="sap-icon://save"
-                press="onSaveAsDraftButtonPress"
+                press="onSaveBalancingButtonPress"
             />
         </beginButton>
         <endButton>
