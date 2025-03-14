@@ -183,12 +183,12 @@ sap.ui.define([
 				}, {});
 
 				arr.forEach(data => {
-					if (!rowDataMap.has(data.ParticipantId)) {
-						rowDataMap.set(data.ParticipantId, {
-							ID: data.ParticipantId,
+					if (!rowDataMap.has(data.ParticipantId.replace(/^0+/, ''))) {
+						rowDataMap.set(data.ParticipantId.replace(/^0+/, ''), {
+							ID: data.ParticipantId.replace(/^0+/, ''),
 							NAME: data.ParticipantName,
 							DEPT: data.ParticipantDeptDesc,
-							VERSION: data.Version,
+							VERSION: data.Version.replace(/^0+/, ''),
 							TotalRate: data.TotalRate,
 							AvgRate: data.AvgRate,
 							Counting: data.Counting,
@@ -200,7 +200,7 @@ sap.ui.define([
 							EventId: data.EventId
 						});
 					}
-					let rowData = rowDataMap.get(data.ParticipantId);
+					let rowData = rowDataMap.get(data.ParticipantId.replace(/^0+/, ''));
 					if (columnMap[data.QuestionId]) {
 						rowData[columnMap[data.QuestionId]] = data.RateId;
 					}
@@ -225,6 +225,7 @@ sap.ui.define([
 							QuestionId: data.QuestionId,
 							EventName: data.EventName,
 							QuestionDesc: data.QuestionDesc,
+							seq: data.seq,
 							columnKey: columnKey
 						};
 						columnMap.set(columnKey, row);
@@ -240,12 +241,18 @@ sap.ui.define([
 					if (a.EventId > b.EventId) {
 						return 1;
 					}
-					if (!a.QuestionId || !a.QuestionGroup) {
-						return 1;
-					}
-					if (!b.QuestionId || !b.QuestionGroup) {
+					if (a.seq < b.seq) {
 						return -1;
 					}
+					if (a.seq > b.seq) {
+						return 1;
+					}
+					// if (!a.QuestionId || !a.QuestionGroup) {
+					// 	return 1;
+					// }
+					// if (!b.QuestionId || !b.QuestionGroup) {
+					// 	return -1;
+					// }
 					if (a.QuestionGroup < b.QuestionGroup) {
 						return -1;
 					}
@@ -276,6 +283,11 @@ sap.ui.define([
 					columnWidth: "250px",
 					QuestionGroup: "Department",
 				});
+				this.arrColumnReport.push({
+					columnId: "VERSION",
+					columnWidth: "100px",
+					QuestionGroup: "Version",
+				});
 
 				columnReport.forEach(data => {
 					idx++;
@@ -303,17 +315,18 @@ sap.ui.define([
 				}, {});
 
 				arr.forEach(data => {
-					if (!rowDataMap.has(data.ParticipantId)) {
-						rowDataMap.set(data.ParticipantId, {
-							ID: data.ParticipantId,
+					if (!rowDataMap.has(data.ParticipantId.replace(/^0+/, ''))) {
+						rowDataMap.set(data.ParticipantId.replace(/^0+/, ''), {
+							ID: data.ParticipantId.replace(/^0+/, ''),
 							NAME: data.ParticipantName,
-							DEPT: data.ParticipantDeptDesc
+							DEPT: data.ParticipantDeptDesc,
+							VERSION: data.Version.replace(/^0+/, '')
 						});
 					}
-					let rowData = rowDataMap.get(data.ParticipantId);
+					let rowData = rowDataMap.get(data.ParticipantId.replace(/^0+/, ''));
 					let columnKey = `${data.EventId}-${data.QuestionGroup}-${data.QuestionId}`;
 					if (columnMap[columnKey]) {
-						rowData[columnMap[columnKey]] = data.RateId;
+						rowData[columnMap[columnKey]] = data.BalanceResult;
 					}
 				});
 
@@ -398,7 +411,6 @@ sap.ui.define([
 
 				var oDetailModel = new sap.ui.model.json.JSONModel();
 				var sData = aSelectedData[0];
-				console.log(aSelectedData);
 
 				Object.keys(sData).forEach(function (key) {
 					if (key.startsWith("col")) {
@@ -434,7 +446,6 @@ sap.ui.define([
 				var sData = this.getView().getModel("oDetailModel").getData();
 				Object.keys(sData).forEach(function (key) {
 					if (key.startsWith("col") && !key.endsWith("_old")) {
-						console.log(key);
 						sData[key] = sData[key + "_old"];
 					}
 				});
@@ -604,13 +615,13 @@ sap.ui.define([
 				var sUpd = {};
 				var sData = s.getView().getModel("oDetailModel").getData();
 				var oModel = s.oODataModel;
-				
+
 				if (sData["Comment"] === "") {
 					sap.ui.getCore().byId("commentBalancing").setValueState("Error");
 					sap.m.MessageToast.show("Please enter note message");
 					return;
 				}
-			
+
 				// Check if any input fields have error state
 				var hasError = false;
 				sap.ui.getCore().byId("detailForm").getContent().forEach(function (control) {
@@ -618,12 +629,29 @@ sap.ui.define([
 						hasError = true;
 					}
 				});
-			
+
 				if (hasError) {
 					sap.m.MessageToast.show("Please correct the errors before saving.");
 					return;
 				}
-			
+
+				if(sData.VERSION !== '000'){			
+					// Check if any changes were made
+					var hasChanges = false;
+					s.arrColumnBalancing.forEach(function (column) {
+						if (column.columnId.substring(0, 3) === "col" && !column.columnId.endsWith("_old")) {
+							if (sData[column.columnId] !== sData[column.columnId + "_old"]) {
+								hasChanges = true;
+							}
+						}
+					});
+				
+					if (!hasChanges) {
+						sap.m.MessageToast.show("No changes detected. Please make changes before saving.");
+						return;
+					}					
+				}
+
 				sap.m.MessageBox.confirm("Are you sure you want to save the changes?", {
 					actions: [sap.m.MessageBox.Action.YES, sap.m.MessageBox.Action.NO],
 					onClose: function (oAction) {

@@ -9,6 +9,7 @@
         id="smartFilterBalancing"
         entitySet="ZHCMCD_CVI_BALANCINGPROCESS"
         search="onSearchBalancing"
+        liveMode="true"
     />
     <t:Table
         id="balancingTable"
