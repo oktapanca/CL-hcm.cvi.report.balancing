@@ -13,8 +13,9 @@
     />
     <t:Table
         id="balancingTable"
-        selectionMode="Single"
+        selectionMode="None"
         rowSelectionChange="onTableBalancingSelection"
+        class="customBalancingTable"
     >
         <t:extension>
             <OverflowToolbar style="Clear">

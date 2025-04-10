@@ -2,12 +2,14 @@ sap.ui.define([
 	"sap/ui/core/mvc/Controller",
 	"sap/ui/model/odata/ODataUtils",
 	"hcm/cvi/report/balancing/controller/BaseController",
-	"sap/ui/export/Spreadsheet"
+	"sap/ui/export/Spreadsheet",
+	"sap/m/Button"
 ],
 	function (Controller,
-		ODataUtils,
-		BaseController,
-		Spreadsheet) {
+	ODataUtils,
+	BaseController,
+	Spreadsheet,
+	Button) {
 		"use strict";
 		return Controller.extend("hcm.cvi.report.balancing.controller.Main", {
 			arrColumnBalancing: [],
@@ -104,6 +106,11 @@ sap.ui.define([
 				var idx = 0;
 				var arrGroup = arr;
 				aColumnData.push({
+					columnId: "SEL",
+					columnWidth: "50px",
+					QuestionGroup: "",
+				});
+				aColumnData.push({
 					columnId: "ID",
 					columnWidth: "100px",
 					QuestionGroup: "Employee ID",
@@ -123,13 +130,15 @@ sap.ui.define([
 					columnWidth: "80px",
 					QuestionGroup: "Version",
 				});
+				// console.log(arr);
 				arr.forEach(function (column) {
 					idx++;
 					var span = 0;
 					span = arrGroup.filter(cspan => column.QuestionGroup === cspan.QuestionGroup).length;
 					aColumnData.push({
 						QuestionId: column.QuestionId,
-						QuestionGroup: column.QuestionGroup,
+						QuestionGroup: column.QuestionGroup,						
+						Editable: column.Editable,
 						columnId: "col" + idx,
 						columnSpan: span,
 						columnWidth: "150px",
@@ -185,6 +194,7 @@ sap.ui.define([
 				arr.forEach(data => {
 					if (!rowDataMap.has(data.ParticipantId.replace(/^0+/, ''))) {
 						rowDataMap.set(data.ParticipantId.replace(/^0+/, ''), {
+							SEL: "sap-icon://edit",
 							ID: data.ParticipantId.replace(/^0+/, ''),
 							NAME: data.ParticipantName,
 							DEPT: data.ParticipantDeptDesc,
@@ -336,6 +346,7 @@ sap.ui.define([
 			},
 
 			_buildTableBalancing: function (arrColumn, arrData) {
+				var s = this;
 				var tableModel = new sap.ui.model.json.JSONModel();
 				tableModel.setData({
 					columns: arrColumn,
@@ -343,18 +354,31 @@ sap.ui.define([
 				});
 				var oTable = this.getView().byId("balancingTable");
 				oTable.setModel(tableModel);
-				oTable.setFixedColumnCount(1);
+				oTable.setFixedColumnCount(2);
 				oTable.bindColumns("/columns", function (index, context) {
 					var sColumnId = context.getObject().columnId;
 					var sMultiLabel = [
 						new sap.m.Label({ text: context.getObject().QuestionGroup, textAlign: "Center", width: "100%" }),
 						new sap.m.Label({ text: context.getObject().columnText, textAlign: "Center", width: "100%" })
 					];
+					var template = new sap.m.Text({
+						text: `{${sColumnId}}`,
+						wrapping: false
+					});
+					if (sColumnId === "SEL") {
+						template = new sap.m.Button({
+							icon: "sap-icon://edit",
+							type: "Transparent",
+							press: function (oEvent) {
+								s.onIconTableBalancingSelection(oEvent);
+							}.bind(this)
+						});
+					}
 					var sColumnSpan = context.getObject().columnSpan;
 					return new sap.ui.table.Column({
-						// id: sColumnId,
+						id: "balancingTableColumn_" + sColumnId,
 						label: sMultiLabel,
-						template: sColumnId,
+						template: template,
 						width: context.getObject().columnWidth,
 						headerSpan: sColumnSpan,
 						multiLabels: sMultiLabel,
@@ -363,6 +387,10 @@ sap.ui.define([
 					});
 				});
 				oTable.bindRows("/rows");
+				oTable.getColumns().forEach(function (oColumn) {
+					// console.log(oColumn);
+					// oColumn.setStyleClass("customColumnStyle");
+				});
 				this.getView().setBusy(false);
 			},
 
@@ -397,6 +425,15 @@ sap.ui.define([
 				oTable.bindRows("/rows");
 			},
 
+			onIconTableBalancingSelection: function (oEvent) {
+				var oTable = this.getView().byId("balancingTable");
+				var oRowContext = oEvent.getSource().getBindingContext();
+				console.log(oRowContext);
+				var oRowData = oRowContext.getObject();
+				console.log(oRowData);
+				this.onBalancingProcess(oRowData);
+			},
+
 			onTableBalancingSelection: function () {
 				var oTable = this.getView().byId("balancingTable");
 				var aSelectedIndices = oTable.getSelectedIndices();
@@ -404,14 +441,14 @@ sap.ui.define([
 					sap.m.MessageToast.show("Please select a row to view details.");
 					return;
 				}
-
 				var aSelectedData = aSelectedIndices.map(function (index) {
 					return oTable.getContextByIndex(index).getObject();
 				});
+				this.onBalancingProcess(aSelectedData[0]);
+			},
 
+			onBalancingProcess: function (sData) {				
 				var oDetailModel = new sap.ui.model.json.JSONModel();
-				var sData = aSelectedData[0];
-
 				Object.keys(sData).forEach(function (key) {
 					if (key.startsWith("col")) {
 						sData[key + "_old"] = sData[key];
@@ -428,6 +465,7 @@ sap.ui.define([
 				sData["Count_old"] = sData["Counting"];
 				sData["Criteria_old"] = sData["Criteria"];
 				sData["NewCriteria_old"] = sData["NewCriteria"];
+				sData["FinalCriteria_old"] = sData["FinalCriteria"];
 				sData["Comment"] = "";
 				oDetailModel.setData(sData);
 
@@ -438,7 +476,7 @@ sap.ui.define([
 					this._oDialog = sap.ui.xmlfragment("hcm.cvi.report.balancing.view.fragments.DetailDialog", this);
 					this.getView().addDependent(this._oDialog);
 				}
-				this.onGenerateFormDialog(aSelectedData[0]);
+				this.onGenerateFormDialog(sData);
 				this._oDialog.open();
 			},
 
@@ -457,6 +495,7 @@ sap.ui.define([
 				var form = sap.ui.getCore().byId("detailForm");
 				var s = this;
 				form.destroyContent();
+				// console.log(this.arrColumnBalancing);
 				this.arrColumnBalancing.forEach(function (column) {
 					if (column.columnId === "ID" || column.columnId === "NAME") {
 						return;
@@ -472,7 +511,11 @@ sap.ui.define([
 								span: "XL1 L1 M2 S4"
 							})
 						}));
-						form.addContent(new sap.m.Input({ value: val, editable: true, type: "Number", change: s.onRatingValueChange.bind(s) }));
+						let sEditable = true;
+						if (column.Editable === "" || column.Editable === false) {
+							sEditable = false;
+						}
+						form.addContent(new sap.m.Input({ value: val, editable: sEditable, type: "Number", change: s.onRatingValueChange.bind(s) }));
 					}
 				});
 
@@ -522,25 +565,36 @@ sap.ui.define([
 
 
 				form.addContent(new sap.m.Label({ text: "Criteria" }));
-				form.addContent(new sap.m.Input({
-					value: "{oDetailModel>/Criteria_old}",
-					editable: false,
-					layoutData: new sap.ui.layout.GridData({
-						span: "XL2 L2 M2 S4"
-					})
-				}));
+				// form.addContent(new sap.m.Input({
+				// 	value: "{oDetailModel>/Criteria_old}",
+				// 	editable: false,
+				// 	layoutData: new sap.ui.layout.GridData({
+				// 		span: "XL2 L2 M2 S4"
+				// 	})
+				// }));
 				form.addContent(new sap.m.Input({ value: "{oDetailModel>/Criteria}", editable: false }));
 
 
 				form.addContent(new sap.m.Label({ text: "New Criteria" }));
-				form.addContent(new sap.m.Input({
-					value: "{oDetailModel>/NewCriteria_old}",
-					editable: false,
-					layoutData: new sap.ui.layout.GridData({
-						span: "XL2 L2 M2 S4"
-					})
-				}));
+				// form.addContent(new sap.m.Input({
+				// 	value: "{oDetailModel>/NewCriteria_old}",
+				// 	editable: false,
+				// 	layoutData: new sap.ui.layout.GridData({
+				// 		span: "XL2 L2 M2 S4"
+				// 	})
+				// }));
 				form.addContent(new sap.m.Input({ value: "{oDetailModel>/NewCriteria}", editable: false }));
+
+
+				form.addContent(new sap.m.Label({ text: "Final Criteria" }));
+				// form.addContent(new sap.m.Input({
+				// 	value: "{oDetailModel>/FinalCriteria_old}",
+				// 	editable: false,
+				// 	layoutData: new sap.ui.layout.GridData({
+				// 		span: "XL2 L2 M2 S4"
+				// 	})
+				// }));
+				form.addContent(new sap.m.Input({ value: "{oDetailModel>/FinalCriteria}", editable: false }));
 			},
 
 			onRatingValueChange: function (oEvent) {
@@ -565,6 +619,7 @@ sap.ui.define([
 				this.arrColumnBalancing.forEach(function (column) {
 					if (sData[column.columnId] && column.columnId.substring(0, 3) === "col") {
 						arrUpdate.push({
+							EventId: sData.EventId,
 							ParticipantId: sData.ID,
 							QuestionId: column.QuestionId,
 							QuestionGroup: column.QuestionGroup,
@@ -589,6 +644,7 @@ sap.ui.define([
 								sData["Count"] = e.ToCalculateBalancing.results[0].Count;
 								sData["Criteria"] = e.ToCalculateBalancing.results[0].Criteria;
 								sData["NewCriteria"] = e.ToCalculateBalancing.results[0].New_Criteria;
+								sData["FinalCriteria"] = e.ToCalculateBalancing.results[0].Final_Criteria;
 								s.getView().getModel("oDetailModel").setData(sData);
 							}
 						},

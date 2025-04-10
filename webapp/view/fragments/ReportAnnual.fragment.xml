@@ -20,7 +20,7 @@
                 <Button
                     icon="sap-icon://excel-attachment"
                     pressed="false"
-                    press="onDownloadBalancing"
+                    press="onDownloadReport"
                 />
             </OverflowToolbar>
         </t:extension>

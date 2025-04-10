@@ -1,0 +1,12 @@
+{
+    "base": "./dist",
+    "conn_usestrictssl" : false,
+    "conn_server": "http://jbplfrd601.listrindo.local:8000",
+    "conn_client" : "300",
+    "conn_user": "Usr-abap",
+    "conn_password": "Inital1!",
+    "abap_package": "ZHCM02",
+    "abap_transport":"FRDK900727",
+    "abap_bsp": "ZHCM02_CVIBAL",
+    "abap_bsp_text": "CVI - Balance"
+}
