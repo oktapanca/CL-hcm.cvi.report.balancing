@@ -8,6 +8,14 @@ sap.ui.define([], function () {
             return value.replace(/^0+/, '');
             }
             return value;
+        },
+
+        formatValue: function (value) {
+            console.log(value);
+            if (value) {
+                return value.replace(/,/g, '.');
+            }
+            return value;
         }
     };
 });

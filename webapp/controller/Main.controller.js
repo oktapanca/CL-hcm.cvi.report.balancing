@@ -3,15 +3,18 @@ sap.ui.define([
 	"sap/ui/model/odata/ODataUtils",
 	"hcm/cvi/report/balancing/controller/BaseController",
 	"sap/ui/export/Spreadsheet",
-	"sap/m/Button"
+	"sap/m/Button",
+	"hcm/cvi/report/balancing/model/formatter",
 ],
 	function (Controller,
-	ODataUtils,
-	BaseController,
-	Spreadsheet,
-	Button) {
+		ODataUtils,
+		BaseController,
+		Spreadsheet,
+		Button,
+		formatter) {
 		"use strict";
 		return Controller.extend("hcm.cvi.report.balancing.controller.Main", {
+			formatter: formatter,
 			arrColumnBalancing: [],
 			arrDataBalancing: [],
 			arrColumnReport: [],
@@ -26,40 +29,64 @@ sap.ui.define([
 					"VisibleReportAnnual": false,
 					"visibleBalancing": true
 				});
+				this.icon = "sap-icon://display";
 
 				this.getView().setModel(oLocalModel, "oLocalModel");
 				this.oErrorHandler = this.oComponent.getErrorHandler()
 			},
 			onSearchBalancing: function () {
 				var oSmartFilterBar = this.getView().byId("smartFilterBalancing");
-				this._getDataColumnBalancing(oSmartFilterBar.getFilters());
+				this.getView().setBusy(true); // Set busy state to true before starting the operation
+				var aFilters = oSmartFilterBar.getFilters();
+
+				this._getDataColumnBalancing(aFilters).then(() => {
+					this.getView().setBusy(false); // Set busy state to false after operation completes
+				}).catch((error) => {
+					this.getView().setBusy(false); // Ensure busy state is reset even on error
+					console.error("Error fetching column balancing data: ", error);
+				});
 			},
 			onSearchReport: function (oEvent) {
 				var oSmartFilterBar = oEvent.getSource();
+				oSmartFilterBar.setShowGoOnFB(false); // Disable the button to prevent multiple clicks
+				this.getView().setBusy(true); // Set busy state to true before starting the operation
 				var aFilters = oSmartFilterBar.getFilters();
-				this._getDataReport(oSmartFilterBar.getFilters());
+				this._getDataReport(aFilters).then(() => {
+					oSmartFilterBar.setShowGoOnFB(true); // Disable the button to prevent multiple clicks
+					this.getView().setBusy(false); // Set busy state to false after operation completes
+				}).catch((error) => {
+					oSmartFilterBar.setShowGoOnFB(true); // Disable the button to prevent multiple clicks
+					this.getView().setBusy(false); // Set busy state to false after operation completes
+					console.error("Error fetching report data: ", error);
+				});
+				// var oSmartFilterBar = oEvent.getSource();
+				// var aFilters = oSmartFilterBar.getFilters();
+				// this._getDataReport(oSmartFilterBar.getFilters());
 			},
 
 			_getDataColumnBalancing: function (oFilter) {
 				var e = "/ZHCMCD_CVI_MDQUEST",
 					s = this;
-				s.getView().setBusy(true);
-				this.oODataModel.read(e, {
-					format: "json",
-					filters: oFilter,
-					success: function (e, t) {
-						s._buildColumnBalancing(e.results);
+				return new Promise(function (resolve, reject) {
+					s.oODataModel.read(e, {
+						format: "json",
+						filters: oFilter,
+						success: function (e, t) {
+							s._buildColumnBalancing(e.results);
 
-						s._getDataBalancing(oFilter).then(function (columns) {
-							s._buildTableBalancing(s.arrColumnBalancing, s.arrDataBalancing);
-						}).catch(function (error) {
-							console.error("Error fetching columns: ", error);
-						});
-					},
-					error: function (e) {
-						s.getView().setBusy(false);
-						console.error("Error fetching data: ", e);
-					}
+							s._getDataBalancing(oFilter).then(function (columns) {
+								s._buildTableBalancing(s.arrColumnBalancing, s.arrDataBalancing);
+								resolve();
+							}).catch(function (error) {
+								console.error("Error fetching columns: ", error);
+								reject(error);
+							});
+						},
+						error: function (e) {
+							console.error("Error fetching data: ", e);
+							reject(e);
+						}
+					});
 				});
 			},
 			_getDataBalancing: function (oFilter) {
@@ -91,6 +118,7 @@ sap.ui.define([
 						filters: oFilter,
 						sorters: [new sap.ui.model.Sorter("ParticipantId")],
 						success: function (e, t) {
+							console.log(e.results);
 							s._buildDataReport(e.results);
 							o(e.results);
 						},
@@ -137,7 +165,7 @@ sap.ui.define([
 					span = arrGroup.filter(cspan => column.QuestionGroup === cspan.QuestionGroup).length;
 					aColumnData.push({
 						QuestionId: column.QuestionId,
-						QuestionGroup: column.QuestionGroup,						
+						QuestionGroup: column.QuestionGroup,
 						Editable: column.Editable,
 						columnId: "col" + idx,
 						columnSpan: span,
@@ -151,14 +179,14 @@ sap.ui.define([
 					QuestionGroup: "Total Rate",
 				});
 				aColumnData.push({
-					columnId: "AvgRate",
-					columnWidth: "80px",
-					QuestionGroup: "Average",
-				});
-				aColumnData.push({
 					columnId: "Counting",
 					columnWidth: "80px",
 					QuestionGroup: "Count",
+				});
+				aColumnData.push({
+					columnId: "AvgRate",
+					columnWidth: "80px",
+					QuestionGroup: "Average",
 				});
 				aColumnData.push({
 					columnId: "MinRate",
@@ -192,9 +220,17 @@ sap.ui.define([
 				}, {});
 
 				arr.forEach(data => {
+					if (data.roleEditable === true) {
+						this.icon = "sap-icon://edit";
+					} else if (data.roleEditable === " ") {
+						this.icon = "sap-icon://display";
+					}
+					if (data.Editable === "" && (data.RateId === "0.00")) {
+						data.RateId = "";
+					}
 					if (!rowDataMap.has(data.ParticipantId.replace(/^0+/, ''))) {
 						rowDataMap.set(data.ParticipantId.replace(/^0+/, ''), {
-							SEL: "sap-icon://edit",
+							SEL: this.icon,
 							ID: data.ParticipantId.replace(/^0+/, ''),
 							NAME: data.ParticipantName,
 							DEPT: data.ParticipantDeptDesc,
@@ -206,8 +242,8 @@ sap.ui.define([
 							Criteria: data.Criteria,
 							NewCriteria: data.NewCriteria,
 							FinalCriteria: data.FinalCriteria,
-
-							EventId: data.EventId
+							EventId: data.EventId,
+							RoleEditable: data.roleEditable
 						});
 					}
 					let rowData = rowDataMap.get(data.ParticipantId.replace(/^0+/, ''));
@@ -225,17 +261,16 @@ sap.ui.define([
 				let columnReport = [];
 				let columnMap = new Map();
 				let idx = 0;
-
 				arr.forEach(data => {
 					let columnKey = `${data.EventId}-${data.QuestionGroup}-${data.QuestionId}`;
 					if (!columnMap.has(columnKey)) {
 						let row = {
-							EventId: data.EventId,
+							EventId: data.EventSeq,
 							QuestionGroup: data.QuestionGroup,
 							QuestionId: data.QuestionId,
 							EventName: data.EventName,
 							QuestionDesc: data.QuestionDesc,
-							seq: data.seq,
+							seq: data.QuestionSeq,
 							columnKey: columnKey
 						};
 						columnMap.set(columnKey, row);
@@ -281,23 +316,23 @@ sap.ui.define([
 				this.arrColumnReport.push({
 					columnId: "ID",
 					columnWidth: "100px",
-					QuestionGroup: "Employee ID",
+					EventName: "Employee ID",
 				});
 				this.arrColumnReport.push({
 					columnId: "NAME",
 					columnWidth: "200px",
-					QuestionGroup: "Employee Name",
+					EventName: "Employee Name",
 				});
 				this.arrColumnReport.push({
 					columnId: "DEPT",
 					columnWidth: "250px",
-					QuestionGroup: "Department",
+					EventName: "Department",
 				});
-				this.arrColumnReport.push({
-					columnId: "VERSION",
-					columnWidth: "100px",
-					QuestionGroup: "Version",
-				});
+				// this.arrColumnReport.push({
+				// 	columnId: "VERSION",
+				// 	columnWidth: "100px",
+				// 	QuestionGroup: "Version",
+				// });
 
 				columnReport.forEach(data => {
 					idx++;
@@ -329,9 +364,10 @@ sap.ui.define([
 						rowDataMap.set(data.ParticipantId.replace(/^0+/, ''), {
 							ID: data.ParticipantId.replace(/^0+/, ''),
 							NAME: data.ParticipantName,
-							DEPT: data.ParticipantDeptDesc,
-							VERSION: data.Version.replace(/^0+/, '')
+							DEPT: data.ParticipantDeptDesc
+							// VERSION: data.Version.replace(/^0+/, '')
 						});
+						console.log(data);
 					}
 					let rowData = rowDataMap.get(data.ParticipantId.replace(/^0+/, ''));
 					let columnKey = `${data.EventId}-${data.QuestionGroup}-${data.QuestionId}`;
@@ -341,6 +377,7 @@ sap.ui.define([
 				});
 
 				this.arrDataReport = Array.from(rowDataMap.values());
+				console.log(this.arrDataReport);
 
 				this._buildTableReport(this.arrColumnReport, this.arrDataReport);
 			},
@@ -353,8 +390,9 @@ sap.ui.define([
 					rows: arrData
 				});
 				var oTable = this.getView().byId("balancingTable");
+				tableModel.setSizeLimit(arrColumn.length);
 				oTable.setModel(tableModel);
-				oTable.setFixedColumnCount(2);
+				oTable.setFixedColumnCount(3);
 				oTable.bindColumns("/columns", function (index, context) {
 					var sColumnId = context.getObject().columnId;
 					var sMultiLabel = [
@@ -367,7 +405,7 @@ sap.ui.define([
 					});
 					if (sColumnId === "SEL") {
 						template = new sap.m.Button({
-							icon: "sap-icon://edit",
+							icon: '{SEL}',
 							type: "Transparent",
 							press: function (oEvent) {
 								s.onIconTableBalancingSelection(oEvent);
@@ -387,11 +425,9 @@ sap.ui.define([
 					});
 				});
 				oTable.bindRows("/rows");
-				oTable.getColumns().forEach(function (oColumn) {
-					// console.log(oColumn);
-					// oColumn.setStyleClass("customColumnStyle");
-				});
-				this.getView().setBusy(false);
+				// oTable.getColumns().forEach(function (oColumn) {
+				// 	console.log(oColumn);
+				// });
 			},
 
 			_buildTableReport: function (arrColumn, arrData) {
@@ -401,13 +437,14 @@ sap.ui.define([
 					rows: arrData
 				});
 				var oTable = this.getView().byId("reportTable");
+				tableModel.setSizeLimit(arrColumn.length);
 				oTable.setModel(tableModel);
-				oTable.setFixedColumnCount(1);
+				oTable.setFixedColumnCount(2);
 				oTable.bindColumns("/columns", function (index, context) {
 					var sColumnId = context.getObject().columnId;
 					var sMultiLabel = [
 						new sap.m.Label({ text: context.getObject().EventName, textAlign: "Center", width: "100%" }),
-						new sap.m.Label({ text: context.getObject().QuestionGroup, textAlign: "Center", width: "100%" }),
+						// new sap.m.Label({ text: context.getObject().QuestionGroup, textAlign: "Center", width: "100%" }),
 						new sap.m.Label({ text: context.getObject().QuestionDesc, textAlign: "Center", width: "100%" })
 					];
 					var sColumnSpan = context.getObject().columnSpan;
@@ -423,14 +460,16 @@ sap.ui.define([
 					});
 				});
 				oTable.bindRows("/rows");
+				// oTable.getColumns().forEach(function (oColumn) {
+				// 	console.log(oColumn);
+				// 	oColumn.setStyleClass("customReportTableCell");
+				// });
 			},
 
 			onIconTableBalancingSelection: function (oEvent) {
 				var oTable = this.getView().byId("balancingTable");
 				var oRowContext = oEvent.getSource().getBindingContext();
-				console.log(oRowContext);
 				var oRowData = oRowContext.getObject();
-				console.log(oRowData);
 				this.onBalancingProcess(oRowData);
 			},
 
@@ -447,7 +486,8 @@ sap.ui.define([
 				this.onBalancingProcess(aSelectedData[0]);
 			},
 
-			onBalancingProcess: function (sData) {				
+			onBalancingProcess: function (sData) {
+				// console.log(sData);
 				var oDetailModel = new sap.ui.model.json.JSONModel();
 				Object.keys(sData).forEach(function (key) {
 					if (key.startsWith("col")) {
@@ -459,6 +499,7 @@ sap.ui.define([
 				sData["Max"] = 0;
 				sData["Average"] = 0;
 				sData["Count"] = 0;
+				sData["RoleEditable"] = sData["RoleEditable"];
 				sData["Total_old"] = sData["TotalRate"];
 				sData["Min_old"] = sData["MinRate"];
 				sData["Average_old"] = sData["AvgRate"];
@@ -492,6 +533,7 @@ sap.ui.define([
 			},
 
 			onGenerateFormDialog: function (sData) {
+				// console.log(sData.RoleEditable);
 				var form = sap.ui.getCore().byId("detailForm");
 				var s = this;
 				form.destroyContent();
@@ -503,71 +545,98 @@ sap.ui.define([
 					if (column.columnId.substring(0, 3) === "col") {
 						var val = "{oDetailModel>/" + column.columnId + "}";
 						var val_old = "{oDetailModel>/" + column.columnId + "_old}";
-						form.addContent(new sap.m.Label({ text: column.columnText }));
-						form.addContent(new sap.m.Input({
-							value: val_old,
-							editable: false,
-							layoutData: new sap.ui.layout.GridData({
-								span: "XL1 L1 M2 S4"
-							})
-						}));
 						let sEditable = true;
+						let sType = "Number";
 						if (column.Editable === "" || column.Editable === false) {
 							sEditable = false;
+							sType = "Text";
 						}
-						form.addContent(new sap.m.Input({ value: val, editable: sEditable, type: "Number", change: s.onRatingValueChange.bind(s) }));
+						if (sData.SEL === "sap-icon://display") {
+							sEditable = false;
+						}
+						form.addContent(new sap.m.Label({ text: column.columnText }));
+						if (sData.RoleEditable) {
+							form.addContent(new sap.m.Input({
+								value: val_old,
+								editable: false,
+								visible: "{oDetailModel>/RoleEditable}",
+								type: sType,
+								layoutData: new sap.ui.layout.GridData({
+									span: "XL1 L1 M2 S4"
+								})
+							}));
+						}
+						form.addContent(new sap.m.Input({
+							value: val,
+							editable: sEditable,
+							type: sType,
+							change: s.onRatingValueChange.bind(s)
+						}));
 					}
 				});
 
 				form.addContent(new sap.m.Label({ text: "Total" }));
-				form.addContent(new sap.m.Input({
-					value: "{oDetailModel>/Total_old}",
-					editable: false,
-					layoutData: new sap.ui.layout.GridData({
-						span: "XL1 L1 M2 S4"
-					}),
-					type: "Number"
-				}));
+				if (sData.RoleEditable) {
+					form.addContent(new sap.m.Input({
+						value: "{oDetailModel>/Total_old}",
+						editable: false,
+						visible: "{oDetailModel>/RoleEditable}",
+						layoutData: new sap.ui.layout.GridData({
+							span: "XL1 L1 M2 S4"
+						}),
+						type: "Number"
+					}));
+				}
 				form.addContent(new sap.m.Input({ value: "{oDetailModel>/Total}", editable: false, type: "Number" }));
 
+				form.addContent(new sap.m.Label({ text: "Count" }));
+				if (sData.RoleEditable) {
+					form.addContent(new sap.m.Input({
+						value: "{= Math.floor(${oDetailModel>/Count_old}) }",
+						editable: false,
+						visible: "{oDetailModel>/RoleEditable}",
+						layoutData: new sap.ui.layout.GridData({
+							span: "XL1 L1 M2 S4"
+						}),
+						type: "Number"
+					}));
+				}
+				form.addContent(new sap.m.Input({ value: "{= Math.floor(${oDetailModel>/Count}) }", editable: false, type: "Number" }));
+
+
 				form.addContent(new sap.m.Label({ text: "Average" }));
-				form.addContent(new sap.m.Input({
-					value: "{oDetailModel>/Average_old}",
-					editable: false,
-					layoutData: new sap.ui.layout.GridData({
-						span: "XL1 L1 M2 S4"
-					}),
-					type: "Number"
-				}));
+				if (sData.RoleEditable) {
+					form.addContent(new sap.m.Input({
+						value: "{oDetailModel>/Average_old}",
+						editable: false,
+						visible: "{oDetailModel>/RoleEditable}",
+						layoutData: new sap.ui.layout.GridData({
+							span: "XL1 L1 M2 S4"
+						}),
+						type: "Number"
+					}));
+				}
 				form.addContent(new sap.m.Input({ value: "{oDetailModel>/Average}", editable: false, type: "Number" }));
 
 				form.addContent(new sap.m.Label({ text: "Minimum" }));
-				form.addContent(new sap.m.Input({
-					value: "{oDetailModel>/Min_old}",
-					editable: false,
-					layoutData: new sap.ui.layout.GridData({
-						span: "XL1 L1 M2 S4"
-					}),
-					type: "Number"
-				}));
+				if (sData.RoleEditable) {
+					form.addContent(new sap.m.Input({
+						value: "{oDetailModel>/Min_old}",
+						editable: false,
+						visible: "{oDetailModel>/RoleEditable}",
+						layoutData: new sap.ui.layout.GridData({
+							span: "XL1 L1 M2 S4"
+						}),
+						type: "Number"
+					}));
+				}
 				form.addContent(new sap.m.Input({ value: "{oDetailModel>/Min}", editable: false, type: "Number" }));
-
-				form.addContent(new sap.m.Label({ text: "Count" }));
-				form.addContent(new sap.m.Input({
-					value: "{= Math.floor(${oDetailModel>/Count_old}) }",
-					editable: false,
-					layoutData: new sap.ui.layout.GridData({
-						span: "XL1 L1 M2 S4"
-					}),
-					type: "Number"
-				}));
-				form.addContent(new sap.m.Input({ value: "{= Math.floor(${oDetailModel>/Count}) }", editable: false, type: "Number" }));
-
 
 				form.addContent(new sap.m.Label({ text: "Criteria" }));
 				// form.addContent(new sap.m.Input({
 				// 	value: "{oDetailModel>/Criteria_old}",
 				// 	editable: false,
+				//	visible: "{oDetailModel>/RoleEditable}",
 				// 	layoutData: new sap.ui.layout.GridData({
 				// 		span: "XL2 L2 M2 S4"
 				// 	})
@@ -579,6 +648,7 @@ sap.ui.define([
 				// form.addContent(new sap.m.Input({
 				// 	value: "{oDetailModel>/NewCriteria_old}",
 				// 	editable: false,
+				//	visible: "{oDetailModel>/RoleEditable}",
 				// 	layoutData: new sap.ui.layout.GridData({
 				// 		span: "XL2 L2 M2 S4"
 				// 	})
@@ -590,6 +660,7 @@ sap.ui.define([
 				// form.addContent(new sap.m.Input({
 				// 	value: "{oDetailModel>/FinalCriteria_old}",
 				// 	editable: false,
+				//	visible: "{oDetailModel>/RoleEditable}",
 				// 	layoutData: new sap.ui.layout.GridData({
 				// 		span: "XL2 L2 M2 S4"
 				// 	})
@@ -691,7 +762,7 @@ sap.ui.define([
 					return;
 				}
 
-				if(sData.VERSION !== '000'){			
+				if (sData.VERSION !== '000') {
 					// Check if any changes were made
 					var hasChanges = false;
 					s.arrColumnBalancing.forEach(function (column) {
@@ -701,11 +772,11 @@ sap.ui.define([
 							}
 						}
 					});
-				
+
 					if (!hasChanges) {
 						sap.m.MessageToast.show("No changes detected. Please make changes before saving.");
 						return;
-					}					
+					}
 				}
 
 				sap.m.MessageBox.confirm("Are you sure you want to save the changes?", {
@@ -713,13 +784,17 @@ sap.ui.define([
 					onClose: function (oAction) {
 						if (oAction === sap.m.MessageBox.Action.YES) {
 							s.arrColumnBalancing.forEach(function (column) {
+								var sRateVal = parseFloat(sData[column.columnId]).toFixed(2);
+								if (sRateVal === "NaN" || sRateVal === "undefined" || sRateVal === "") {
+									sRateVal = "0.00";
+								}
 								if (column.columnId.substring(0, 3) === "col" && !column.columnId.endsWith("_old")) {
 									arrUpdate.push({
 										EventId: sData.EventId,
 										ParticipantId: sData.ID,
 										QuestionId: column.QuestionId,
 										QuestionGroup: column.QuestionGroup,
-										RateId: sData[column.columnId]
+										RateId: sRateVal
 									});
 								}
 							}
@@ -767,19 +842,27 @@ sap.ui.define([
 				}
 				var oTable = this.getView().byId("balancingTable");
 				var oModel = oTable.getModel();
-				var aCols = this.arrColumnBalancing.map(function (col) {
-					let label = `${col.QuestionGroup}-${col.columnText}`;
-					return {
-						label: trimHyphens(label),
-						property: col.columnId,
-						type: 'string'
-					};
-				});
+				var aCols = this.arrColumnBalancing
+					.filter(function (col) {
+						return col.columnId !== "SEL"; // Exclude the SEL column
+					})
+					.map(function (col) {
+						var sType = "string";
+						if (col.columnId.substring(0, 3) === "col" || col.columnId === "TotalRate" || col.columnId === "AvgRate" || col.columnId === "MinRate" || col.columnId === "Counting") {
+							sType = "number";
+						}
+						let label = `${col.QuestionGroup}-${col.columnText}`;
+						return {
+							label: trimHyphens(label),
+							property: col.columnId,
+							type: sType
+						};
+					});
 				var oSettings = {
 					workbook: { columns: aCols },
 					dataSource: oModel.getProperty("/rows"),
-					fileName: "BalancingData.xlsx",
-					sheetName: "BalancingData" // Optional
+					fileName: "Report Balancing CVI.xlsx",
+					sheetName: "Report Balancing CVI" // Optional
 				};
 				var oSheet = new Spreadsheet(oSettings);
 				oSheet.build().finally(function () {
@@ -794,26 +877,32 @@ sap.ui.define([
 				}
 				var oTable = this.getView().byId("reportTable");
 				var oModel = oTable.getModel();
-				var aCols = this.arrColumnReport.map(function (col) {
-					let label = `${col.EventName}-${col.QuestionGroup}-${col.QuestionDesc}`;
-					return {
-						label: trimHyphens(label),
-						property: col.columnId,
-						type: 'string'
-					};
-				});
+				var aCols = this.arrColumnReport
+					.filter(function (col) {
+						return col.columnId !== "SEL"; // Exclude the SEL column
+					})
+					.map(function (col) {
+						var sType = "string";
+						if (col.columnId.substring(0, 3) === "col" || col.columnId === "TotalRate" || col.columnId === "AvgRate" || col.columnId === "MinRate" || col.columnId === "Counting") {
+							sType = "number";
+						}
+						let label = `${col.EventName}-${col.QuestionDesc}`;
+						return {
+							label: trimHyphens(label),
+							property: col.columnId,
+							type: sType
+						};
+					});
 				var oSettings = {
 					workbook: { columns: aCols },
 					dataSource: oModel.getProperty("/rows"),
-					fileName: "ReportData.xlsx",
-					sheetName: "ReportData" // Optional
+					fileName: "Report Annual CVI.xlsx",
+					sheetName: "Report Annual CVI" // Optional
 				};
 				var oSheet = new Spreadsheet(oSettings);
 				oSheet.build().finally(function () {
 					oSheet.destroy();
 				});
-			},
-
-
+			}
 		});
 	});

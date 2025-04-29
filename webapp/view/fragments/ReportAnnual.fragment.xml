@@ -7,12 +7,13 @@
 >
     <sfb:SmartFilterBar
         entitySet="ZHCMCD_CVI_ANNUALREPORT"
+        liveMode="false"
         search="onSearchReport"
     />
     <t:Table
         id="reportTable"
         selectionMode="None"
-        visibleRowCountMode="Auto"
+        class="customReportTable"
     >
         <t:extension>
             <OverflowToolbar style="Clear">

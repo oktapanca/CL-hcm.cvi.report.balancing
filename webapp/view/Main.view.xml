@@ -27,9 +27,7 @@
                         text="Report Annual CVI"
                     />
                 </items>
-                <content />
-            </IconTabBar>
-
+                <content>
             <VBox
                 fitContainer="true"
                 visible="{oLocalModel>/VisibleReportAnnual}"
@@ -49,6 +47,9 @@
                     type="XML"
                 />
             </VBox>
+                </content>
+            </IconTabBar>
+
         </content>
     </Page>
 </mvc:View>

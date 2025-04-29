@@ -9,3 +9,13 @@
     width: 100%;
     box-sizing: border-box;
 }
+.customReportTable{
+    border: 1px solid #ccc;
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.customReportTableCell {
+    border-left: .0625rem solid #000000;
+}

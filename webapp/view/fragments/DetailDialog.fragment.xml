@@ -35,6 +35,7 @@
                     layout="ResponsiveGridLayout"
                     editable="false"
                     xmlns:form="sap.ui.layout.form"
+                    visible="{= ${oDetailModel>/SEL} === 'sap-icon://edit' }"
                 >
                     <Label text="Note Message" required="true" />
                     <TextArea id="commentBalancing" liveChange="onCommentTextAreaLiveChange" value="{oDetailModel>/Comment}" />
@@ -43,6 +44,8 @@
         </content>
         <beginButton>
             <Button
+                id ="saveBalancingButton"
+                visible="{= ${oDetailModel>/SEL} === 'sap-icon://edit' }"
                 text="Save"
                 type="Default"
                 icon="sap-icon://save"
